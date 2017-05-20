@@ -1,3 +1,4 @@
+package decompressor;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class Decompressor {
 	Decompressor(String fileName){
 		this(new File(fileName));
 	}
+	
 	
 	/*Initialises the dictionary with all of the ASCII symbols (0 - 255)*/
 	private void initializeDictionary(){
