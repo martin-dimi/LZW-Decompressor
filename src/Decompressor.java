@@ -1,8 +1,4 @@
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,23 +9,22 @@ public class Decompressor {
 	private int size;
 	private byte[] file;
 	private Map<Integer, String> dictionary;
-	
 	private List<Integer> values;
 
-	Decompressor(File file) throws IOException{
+	Decompressor(File file){
 		
 		dictionary = new HashMap<>();
 		initializeDictionary();
-		
 		values = new ArrayList<Integer>();
 		
-		this.file = Files.readAllBytes(file.toPath());
-	}
-	
-	public void printFile() throws IOException{
-		System.out.println("The length of the file is: " + file.length);
-		decode();
-	}
+		try{
+			this.file = Files.readAllBytes(file.toPath());
+		}
+		catch(Exception e){
+			System.out.println("Error: file not found");
+		}
+		
+	}	
 	
 	private void initializeDictionary(){
 		size = 0;
@@ -39,115 +34,72 @@ public class Decompressor {
 		}
 	}
 	
-	public void decode() throws FileNotFoundException{
-
-		int mask8bits = 0xF0;
+	public void decode(){
+		
+		System.out.println("Decompressing");
+			
+		int offSet = file.length % 3;
+		unpack(offSet);
+		decompress();
+		
+	}
+	
+	private void unpack(int offSet){
+		
 		int mask4bits = 0x0F;
-	
 		int wordA;
-		int wordB;
+		int wordB;	
 		
-		int index = 0;
+		for(int position = 0; position < file.length - offSet; position += 3){
+			int a = Byte.toUnsignedInt(file[position]);
+			int b = Byte.toUnsignedInt(file[position + 1]);
+			int c = Byte.toUnsignedInt(file[position + 2]);
+			
+			wordA =  a << 4;
+			wordA =  wordA | (b >> 4 & mask4bits);
+
+			wordB = (mask4bits & b) << 8;
+			wordB = wordB | c;
+			
+			values.add(wordA);
+			values.add(wordB);
+		}
 		
-		if(file.length % 3 == 0)
-			for(int position = 0; position < file.length; position += 3){
-				int a = Byte.toUnsignedInt(file[position]);
-				int b = Byte.toUnsignedInt(file[position + 1]);
-				int c = Byte.toUnsignedInt(file[position + 2]);
-				
-				wordA =  a << 4;
-				wordA =  (b >> 4 & mask4bits) | wordA;
-	
-				
-				wordB = (mask4bits & b) << 8;
-				wordB = wordB | c;
-	
-				
-				values.add(index, wordA);
-				index++;
-				values.add(index, wordB);
-				index++;
-			}
-		
-		else {
-			for(int position = 0; position < file.length - 2; position += 3){
-				int a = Byte.toUnsignedInt(file[position]);
-				int b = Byte.toUnsignedInt(file[position + 1]);
-				int c = Byte.toUnsignedInt(file[position + 2]);
-				
-				wordA =  a << 4;
-				wordA =  (b >> 4 & mask4bits) | wordA;
-	
-				
-				wordB = (mask4bits & b) << 8;
-				wordB = wordB | c;
-	
-				
-				values.add(index, wordA);
-				index++;
-				values.add(index, wordB);
-				index++;
-			}
+		if(offSet == 2){
 			int a = Byte.toUnsignedInt(file[file.length-1]);
 			int b = Byte.toUnsignedInt(file[file.length-2]);
 			
-			wordA = ((a & mask4bits) << 8) | b;
-			values.add(index, wordA);
-			index++;
+			wordA = ((b << 8) & 0xf00) | a;
+			
+			values.add(wordA);
 		}
-		
-		
-	//	System.out.println(values.toString());
-		updateDictionary();
 	}
 	
-	private void printValues(){
-		String whole = "";
-		for(int cur : values){
-			whole += dictionary.get(cur);
-		}
-		System.out.println(whole);
-	}
-	
-private void updateDictionary() throws FileNotFoundException{
-		
-		String entry = "";
-		String output = "";
-		String word = "";
-		char ch;
-		int prevcode, currcode;
 
-		prevcode = values.get(0);
-		output += dictionary.get(prevcode);
+	private void decompress(){
+		String prevSymbol = "" + (char)(int)values.remove(0);
+		StringBuffer output = new StringBuffer(prevSymbol);
 		
-		
-		for(int i = 1; i<values.size();i++){
-			currcode = values.get(i);
-			
-			entry = dictionary.get(currcode);
-			output += entry;
-			System.out.println("the size: " + size + "the id: " + currcode + " and the character: " + entry);
-			ch = entry.charAt(0);
-			word = dictionary.get(prevcode) + ch;
-			if(!dictionary.containsValue(word)){
-				dictionary.put(size, word);
-				size++;
-			}
-			
-			prevcode = currcode;
-			
+		for (int currIndex : values) {	// starting from 1, because we removed 0
+	        String entry = "";
+	        if (dictionary.containsKey(currIndex))
+	            entry = dictionary.get(currIndex);
+	        else if (currIndex == size)
+	        	entry = prevSymbol + prevSymbol.charAt(0);	// when size == index
+     
+	        dictionary.put(size++, prevSymbol + entry.charAt(0));
+	        
+	        output.append(entry);
+	        prevSymbol = entry;
+	        
 			if(size == 4096){
 				dictionary = new HashMap<>();
 				initializeDictionary();
-				
-				size = 256;
 			}
-		}
-		
+	    }
 		
 		System.out.println(output);
 	}
-	
 }
 
 

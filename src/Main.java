@@ -3,9 +3,8 @@ import java.io.IOException;
 
 public class Main {
 	public static void main (String[] args) throws IOException{
-		File file = new File("C:\\Users\\Martin\\workspace\\Decompressor\\src\\compressedfile3.z");
+		File file = new File("C:\\Users\\Martin\\workspace\\Decompressor\\src\\compressedfile4.z");
 		Decompressor decompressor = new Decompressor(file);
-		
-		decompressor.printFile();
+		decompressor.decode();
 	}
 }
