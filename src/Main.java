@@ -1,10 +1,10 @@
 import java.io.File;
-import java.io.IOException;
 
 public class Main {
-	public static void main (String[] args) throws IOException{
-		File file = new File("C:\\Users\\Martin\\workspace\\Decompressor\\src\\compressedfile4.z");
-		Decompressor decompressor = new Decompressor(file);
-		decompressor.decode();
+	public static void main (String[] args){
+		Decompressor d = new Decompressor("compressedfile4.z");
+		
+		d.decode();
+		System.out.println(d.getPrint());
 	}
 }
